@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const { BadRequestError } = require('../errors/BadRequestError');
 const { ConflictError } = require('../errors/ConflictError');
 const { NotFoundError } = require('../errors/NotFoundError');
-const { UnauthorizeError } = require('../errors/UnauthorizeError');
 const user = require('../models/user');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
@@ -18,11 +17,7 @@ module.exports.getLoggedUser = (req, res, next) => {
       }
     })
     .catch((e) => {
-      if (e.name === 'CastError') {
-        next(BadRequestError('Переданы некорректные данные при создании пользователя.'));
-      } else {
-        next(e);
-      }
+      next(e);
     });
 };
 
@@ -49,6 +44,9 @@ module.exports.createUser = (req, res, next) => {
             next(e);
           }
         });
+    })
+    .catch((e) => {
+      next(e);
     });
 };
 
@@ -67,6 +65,8 @@ module.exports.updateProfile = (req, res, next) => {
     .catch((e) => {
       if (e.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
+      } else if (e.code === 11000) {
+        next(new ConflictError('Пользователь с таким email существует'));
       } else {
         next(e);
       }
@@ -88,7 +88,7 @@ module.exports.login = (req, res, next) => {
       );
       res.send({ token });
     })
-    .catch(() => {
-      next(new UnauthorizeError('Некорректный токен'));
+    .catch((e) => {
+      next(e);
     });
 };
